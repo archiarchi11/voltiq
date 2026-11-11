@@ -30,18 +30,29 @@ API docs (`/docs`) from one FastAPI server. Page links such as `/forecasting` wo
 | `HOST=0.0.0.0 ./start.sh` | Reachable from other devices on your network at `http://<your-computer-ip>:8000` |
 | `SKIP_BUILD=1 ./start.sh` | Reuse the existing build (faster restart) |
 
-### Putting it online
+### Putting it online (free, Render)
 
-The included `Dockerfile` builds the React app and runs the same single server, so any container host can run it
-(Render, Railway, Fly.io, a VPS, …):
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/archiarchi11/voltiq)
+
+`render.yaml` describes a free Render web service built from the `Dockerfile`. The image builds the React app
+and runs the single FastAPI server. Because free instances have no persistent disk, the bundled dataset
+(`seed/ev_charging.csv.gz`) is loaded and evaluated automatically whenever the database is empty, so the site
+is never blank after a restart.
+
+Free-plan behaviour: the service sleeps after 15 minutes without traffic, so the first request afterwards takes
+1–2 minutes. Model evaluation then runs for a few minutes on the shared CPU (the dashboard shows progress), and
+uploads made on the live site are lost when it restarts.
+
+Every push to `main` redeploys automatically.
+
+Other hosts: any Docker host works:
 
 ```bash
 docker build -t voltiq .
 docker run -p 8000:8000 -v voltiq-data:/data voltiq
 ```
 
-Mount a persistent volume at `/data`, which holds uploads, cleaned data, cached models and the SQLite
-database. Hosts that set `$PORT` are supported automatically.
+`deploy/huggingface.sh <user>/<space>` publishes to a Hugging Face Docker Space, which requires a PRO plan.
 
 ## Development mode (hot reload)
 
@@ -140,6 +151,9 @@ VoltIQ/
 ├── EV_updated.ipynb            # original notebook (unchanged)
 ├── start.sh                    # one command: build + serve the website on :8000
 ├── Dockerfile                  # single-container deployment
+├── render.yaml                 # Render blueprint (free plan)
+├── seed/ev_charging.csv.gz     # bundled dataset, auto-loaded when the DB is empty
+├── deploy/huggingface.sh       # Hugging Face Spaces deploy (PRO)
 ├── .env.example
 ├── data/                       # runtime: uploads/, cleaned/, models/, voltiq.db
 ├── backend/
@@ -195,7 +209,7 @@ Model keys: `naive, snaive, ar1, ma1, arma11, arima111, arima211, arima112, sari
 
 Copy `.env.example` to `.env` (project root or `backend/`). All settings have defaults:
 `VOLTIQ_DATA_DIR`, `VOLTIQ_DATABASE_URL`, `VOLTIQ_CORS_ORIGINS`, `VOLTIQ_MAX_UPLOAD_MB`,
-`VOLTIQ_AUTO_EVALUATE`, `VOLTIQ_MIN_DAILY_OBSERVATIONS`, `VOLTIQ_FRONTEND_DIST` (built web app to serve,
+`VOLTIQ_AUTO_EVALUATE`, `VOLTIQ_MIN_DAILY_OBSERVATIONS`, `VOLTIQ_SEED_CSV` (dataset auto-loaded into an empty database; `""` disables), `VOLTIQ_FRONTEND_DIST` (built web app to serve,
 default `frontend/dist`). If the project folder moves, stored file paths are re-pointed to the new `data/` on startup. Frontend: `VITE_PROXY_TARGET`, `VITE_API_BASE_URL`.
 
 ## Error handling

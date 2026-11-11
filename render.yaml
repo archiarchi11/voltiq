@@ -1,0 +1,14 @@
+# Render Blueprint – one-click deploy of VoltIQ on Render's free plan.
+# Deploy: https://render.com/deploy?repo=https://github.com/archiarchi11/voltiq
+services:
+  - type: web
+    name: voltiq
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      # Bundled EV dataset, loaded automatically whenever the (ephemeral) database is empty
+      - key: VOLTIQ_SEED_CSV
+        value: /app/seed/ev_charging.csv.gz

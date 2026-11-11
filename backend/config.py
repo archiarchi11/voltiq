@@ -48,9 +48,16 @@ MAX_UPLOAD_MB: int = int(os.getenv("VOLTIQ_MAX_UPLOAD_MB", "200"))
 FRONTEND_DIST: Path = _path("VOLTIQ_FRONTEND_DIST", PROJECT_DIR / "frontend" / "dist")
 
 # Optional CSV loaded automatically on startup when the database is empty (used by hosted demos).
-# Defaults to seed/ev_charging.csv if that file exists; set VOLTIQ_SEED_CSV="" to disable.
+# Defaults to seed/ev_charging.csv (or .csv.gz) if present; set VOLTIQ_SEED_CSV="" to disable.
+def _default_seed() -> Path:
+    for name in ("ev_charging.csv", "ev_charging.csv.gz"):
+        if (PROJECT_DIR / "seed" / name).is_file():
+            return PROJECT_DIR / "seed" / name
+    return PROJECT_DIR / "seed" / "ev_charging.csv"
+
+
 SEED_CSV: Path | None = (
-    None if os.getenv("VOLTIQ_SEED_CSV") == "" else _path("VOLTIQ_SEED_CSV", PROJECT_DIR / "seed" / "ev_charging.csv")
+    None if os.getenv("VOLTIQ_SEED_CSV") == "" else _path("VOLTIQ_SEED_CSV", _default_seed())
 )
 
 # Run the full validation/test model evaluation automatically after preprocessing.
