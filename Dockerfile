@@ -22,6 +22,10 @@ RUN pip install --no-cache-dir -r backend/requirements.txt
 COPY backend/ backend/
 COPY seed/ seed/
 COPY --from=web /app/frontend/dist frontend/dist
+# Run cleaning + the full 12-model evaluation once at build time (skipped if no seed dataset is present).
+# The app copies this snapshot into its empty data directory at startup, so cold starts are instant.
+RUN cd backend && VOLTIQ_DATA_DIR=/app/snapshot python prepare_snapshot.py && \
+    mkdir -p /app/snapshot && chown -R user:user /app/snapshot
 USER user
 EXPOSE 8000
 WORKDIR /app/backend

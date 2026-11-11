@@ -126,6 +126,16 @@ def invalidate(dataset_id: int) -> None:
         _cache.pop(dataset_id, None)
 
 
+def restore_snapshot() -> bool:
+    """Copy a build-time snapshot (database, cleaned data, fitted models) into an empty data directory."""
+    from config import DEFAULT_DATABASE, SNAPSHOT_DIR, USING_DEFAULT_DATABASE
+
+    if not USING_DEFAULT_DATABASE or DEFAULT_DATABASE.exists() or not (SNAPSHOT_DIR / "voltiq.db").is_file():
+        return False
+    shutil.copytree(SNAPSHOT_DIR, DATA_DIR, dirs_exist_ok=True)
+    return True
+
+
 def repair_paths(db: Session) -> int:
     """Re-point stored file paths at this data directory after the project folder has been moved.
 

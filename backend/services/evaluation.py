@@ -90,10 +90,11 @@ def latest_run(db: Session, dataset_id: int, completed_only: bool = False) -> Ev
     return db.scalar(q.order_by(EvaluationRun.id.desc()))
 
 
-def start_evaluation(dataset_id: int) -> int | None:
-    """Create an evaluation run and execute it in a background thread.
+def start_evaluation(dataset_id: int, background: bool = True) -> int | None:
+    """Create an evaluation run and execute it (in a background thread by default).
 
     Returns the run id, or None if an evaluation for this dataset is already running.
+    ``background=False`` runs it to completion in the calling thread (used at image build time).
     """
     with _running_lock:
         if dataset_id in _running:
@@ -114,6 +115,9 @@ def start_evaluation(dataset_id: int) -> int | None:
     finally:
         db.close()
 
+    if not background:
+        _execute(dataset_id, run_id)
+        return run_id
     thread = threading.Thread(target=_execute, args=(dataset_id, run_id), name=f"eval-{run_id}", daemon=True)
     thread.start()
     return run_id

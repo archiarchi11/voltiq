@@ -14,7 +14,7 @@ import config
 from database import SessionLocal, init_db
 from routers import analytics, dashboard, dataset, forecasting, models
 from services import dataset_ops
-from services.data_service import NoActiveDatasetError, repair_paths
+from services.data_service import NoActiveDatasetError, repair_paths, restore_snapshot
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 log = logging.getLogger("voltiq")
@@ -28,6 +28,8 @@ def _has_frontend() -> bool:
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
+    if restore_snapshot():
+        log.info("Restored pre-computed data snapshot from %s", config.SNAPSHOT_DIR)
     init_db()
     with SessionLocal() as db:
         if (n := repair_paths(db)):

@@ -60,11 +60,18 @@ SEED_CSV: Path | None = (
     None if os.getenv("VOLTIQ_SEED_CSV") == "" else _path("VOLTIQ_SEED_CSV", _default_seed())
 )
 
+# Pre-computed data directory (built into the Docker image by prepare_snapshot.py). Copied into an empty
+# DATA_DIR at startup so hosted cold starts need no cleaning or model evaluation.
+SNAPSHOT_DIR: Path = _path("VOLTIQ_SNAPSHOT_DIR", PROJECT_DIR / "snapshot")
+
 # Run the full validation/test model evaluation automatically after preprocessing.
 AUTO_EVALUATE: bool = _bool("VOLTIQ_AUTO_EVALUATE", True)
 
 # Minimum number of daily observations required before models are fitted.
 MIN_DAILY_OBSERVATIONS: int = int(os.getenv("VOLTIQ_MIN_DAILY_OBSERVATIONS", "60"))
+
+DEFAULT_DATABASE = DATA_DIR / "voltiq.db"
+USING_DEFAULT_DATABASE: bool = "VOLTIQ_DATABASE_URL" not in os.environ
 
 for _d in (DATA_DIR, UPLOAD_DIR, CLEANED_DIR, MODEL_DIR):
     _d.mkdir(parents=True, exist_ok=True)

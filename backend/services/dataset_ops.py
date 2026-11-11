@@ -76,7 +76,7 @@ def preprocess(db: Session, ds: Dataset) -> dict[str, Any]:
     return summary
 
 
-def seed_from_csv(csv_path: Path) -> None:
+def seed_from_csv(csv_path: Path, evaluate_in_background: bool = True) -> None:
     """Load a dataset automatically when the database has none (e.g. a fresh hosted container).
 
     Runs the same upload -> validate -> preprocess -> evaluate path as the UI.
@@ -101,4 +101,4 @@ def seed_from_csv(csv_path: Path) -> None:
             return
         log.info("Seeded dataset #%s with %s cleaned records", ds.id, f"{summary['cleaned_rows']:,}")
         if AUTO_EVALUATE:
-            evaluation.start_evaluation(ds.id)
+            evaluation.start_evaluation(ds.id, background=evaluate_in_background)

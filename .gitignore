@@ -19,3 +19,6 @@ frontend/.env
 
 # Optional seed dataset (kept out of git)
 seed/*.csv
+
+# Build-time data snapshot (created inside the Docker image)
+snapshot/
