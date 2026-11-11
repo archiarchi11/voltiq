@@ -1,0 +1,18 @@
+# Python
+backend/.venv/
+__pycache__/
+*.pyc
+# Node
+frontend/node_modules/
+frontend/dist/
+# Runtime data (uploads, cleaned data, model cache, SQLite DB)
+data/*
+!data/.gitkeep
+# Env
+.env
+backend/.env
+frontend/.env
+
+# Local tool config
+.claude/
+.DS_Store
