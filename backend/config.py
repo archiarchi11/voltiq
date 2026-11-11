@@ -47,6 +47,12 @@ MAX_UPLOAD_MB: int = int(os.getenv("VOLTIQ_MAX_UPLOAD_MB", "200"))
 # Built React app (``npm run build``) served by FastAPI so the whole platform runs as one website.
 FRONTEND_DIST: Path = _path("VOLTIQ_FRONTEND_DIST", PROJECT_DIR / "frontend" / "dist")
 
+# Optional CSV loaded automatically on startup when the database is empty (used by hosted demos).
+# Defaults to seed/ev_charging.csv if that file exists; set VOLTIQ_SEED_CSV="" to disable.
+SEED_CSV: Path | None = (
+    None if os.getenv("VOLTIQ_SEED_CSV") == "" else _path("VOLTIQ_SEED_CSV", PROJECT_DIR / "seed" / "ev_charging.csv")
+)
+
 # Run the full validation/test model evaluation automatically after preprocessing.
 AUTO_EVALUATE: bool = _bool("VOLTIQ_AUTO_EVALUATE", True)
 

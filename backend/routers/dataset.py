@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 
 from config import AUTO_EVALUATE
 from database import get_db
-from models import Dataset, DatasetMetadata
+from models import Dataset
 from schemas import (
     CleaningSummary,
     DatasetDetail,
@@ -25,8 +25,7 @@ from schemas import (
     PreviewResponse,
     ValidationReport,
 )
-from services import data_service, evaluation, preprocessing
-from services.analysis import build_daily, edge_day_warnings
+from services import data_service, dataset_ops, evaluation, preprocessing
 from services.forecasting import MODELS_BY_KEY
 
 router = APIRouter(prefix="/api/dataset", tags=["dataset"])
@@ -97,25 +96,7 @@ def upload_dataset(file: UploadFile = File(...), db: Session = Depends(get_db)):
     except data_service.UploadTooLargeError as exc:
         raise HTTPException(status_code=413, detail=str(exc)) from exc
 
-    ds = Dataset(filename=Path(name).name, stored_path=str(path), file_size_bytes=size, status="uploaded")
-    db.add(ds)
-    db.commit()
-
-    try:
-        raw = preprocessing.read_raw_csv(path)
-        report = preprocessing.validate(raw)
-        prof = preprocessing.profile(raw)
-    except preprocessing.DatasetValidationError as exc:
-        report = {"valid": False, "errors": [str(exc)], "warnings": [],
-                  "checks": [{"name": "Readable CSV", "passed": False, "detail": str(exc), "level": "error"}]}
-        prof = {"row_count": 0, "column_count": 0, "columns": [], "missing_values": {}, "preview": [],
-                "date_min": None, "date_max": None, "session_status_counts": {}}
-
-    ds.meta = DatasetMetadata(validation=report, **prof)
-    ds.status = "validated" if report["valid"] else "invalid"
-    ds.error = None if report["valid"] else "; ".join(report["errors"])
-    db.commit()
-    db.refresh(ds)
+    ds = dataset_ops.register_upload(db, path, name, size)
     return _detail(ds)
 
 
@@ -164,33 +145,9 @@ def preprocess_dataset(body: PreprocessRequest | None = None, db: Session = Depe
         raise HTTPException(status_code=409, detail="Model evaluation is running for this dataset. Try again when it finishes.")
 
     try:
-        raw = preprocessing.read_raw_csv(ds.stored_path)
-        cleaned, summary = preprocessing.clean(raw)
+        summary = dataset_ops.preprocess(db, ds)
     except preprocessing.DatasetValidationError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
-
-    path = data_service.store_cleaned(ds, cleaned)
-    data_service.invalidate(ds.id)
-    daily = build_daily(cleaned)
-
-    meta = ds.meta
-    meta.cleaned_row_count = int(len(cleaned))
-    meta.cleaned_date_min = cleaned[preprocessing.DATE_COL].min().date()
-    meta.cleaned_date_max = cleaned[preprocessing.DATE_COL].max().date()
-    meta.daily_observations = int(len(daily))
-    meta.total_energy_kwh = float(cleaned[preprocessing.ENERGY_COL].sum())
-    meta.station_count = int(cleaned[preprocessing.STATION_COL].nunique())
-    summary["daily_observations"] = int(len(daily))
-    summary["zero_demand_days"] = int((daily == 0).sum())
-    summary["data_warnings"] = edge_day_warnings(daily)
-    meta.quality_summary = summary
-
-    ds.cleaned_path = str(path)
-    ds.status = "processed"
-    ds.processed_at = data_service.now()
-    ds.error = None
-    data_service.activate(db, ds)  # only a validated, successfully cleaned upload replaces the active dataset
-    db.refresh(ds)
 
     run_id = evaluation.start_evaluation(ds.id) if AUTO_EVALUATE else None
     msg = f"Cleaned {summary['cleaned_rows']:,} of {summary['original_rows']:,} records. Dataset is now active."

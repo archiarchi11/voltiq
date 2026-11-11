@@ -13,6 +13,7 @@ from sqlalchemy import text
 import config
 from database import SessionLocal, init_db
 from routers import analytics, dashboard, dataset, forecasting, models
+from services import dataset_ops
 from services.data_service import NoActiveDatasetError, repair_paths
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -31,6 +32,11 @@ async def lifespan(_app: FastAPI):
     with SessionLocal() as db:
         if (n := repair_paths(db)):
             log.info("Updated %d stored file path(s) to the current data directory", n)
+    if config.SEED_CSV is not None and config.SEED_CSV.is_file():
+        try:
+            dataset_ops.seed_from_csv(config.SEED_CSV)
+        except Exception:  # never block startup on seeding
+            log.exception("Dataset seeding failed")
     if _has_frontend():
         log.info("Serving the VoltIQ web app from %s", config.FRONTEND_DIST)
     else:

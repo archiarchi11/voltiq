@@ -16,3 +16,6 @@ frontend/.env
 # Local tool config
 .claude/
 .DS_Store
+
+# Optional seed dataset (kept out of git)
+seed/*.csv
