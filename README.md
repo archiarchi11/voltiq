@@ -2,6 +2,9 @@
 
 **Predict. Analyse. Optimise.**
 
+**Live demo: https://voltiq-r4fb.onrender.com** (free hosting: after 15 minutes without visitors it sleeps, and the
+first visit then takes 1–2 minutes to wake it up).
+
 VoltIQ is a full-stack web application that wraps the EV charging-demand forecasting pipeline from
 `EV_updated.ipynb` in a FastAPI backend and a React dashboard. It forecasts **total daily energy demand (kWh)**
 across all charging stations from session-level charging data.
